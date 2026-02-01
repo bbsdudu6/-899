@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Munger OS v3.0 - 泰坦决策系统</title>
+    <title>Munger OS v3.1 - 泰坦决策系统 (透明版)</title>
     <!-- 基础库 -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -35,7 +35,9 @@
             Gavel: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m13 13 6 6"/><path d="M16 16 8.5 8.5a2.12 2.12 0 1 0-3 3L13 19"/><path d="M9 21h5"/><path d="M9 3H4v5"/></svg>,
             ChevronRight: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
             Copy: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
-            Trash: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            Trash: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            Check: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            X: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         };
 
         const steps = [
@@ -95,6 +97,15 @@
                 return (win * data.gain) - ((1 - win) * data.loss);
             }, [data]);
 
+            // 核心判决逻辑：透明化
+            const criteria = [
+                { id: 'model', name: "模型共鸣 (≥3个)", met: data.factors.length >= 3, msg: "模型支撑不足，逻辑太单薄" },
+                { id: 'ev', name: "数学期望 (>0)", met: ev > 0, msg: "赔率太差，长期必输" },
+                { id: 'depth', name: "死因推演 (>10字)", met: data.preMortem.length > 10, msg: "反向思考太敷衍，未直面风险" }
+            ];
+            
+            const isGreat = criteria.every(c => c.met);
+
             const copyReport = () => {
                 const report = `
 📊 芒格决策报告：${data.project || "未命名项目"}
@@ -104,10 +115,10 @@
 😈 魔鬼代言：${data.devilAdvocate || "未反驳"}
 💰 激励分析：${data.incentives || "未分析"}
 --------------------------------
-✅ 模型共鸣：${data.factors.length} 个 (${data.factors.join(', ')})
-🧮 数学期望：${ev.toFixed(2)} (胜率 ${data.winRate}%)
+✅ 模型共鸣：${data.factors.length} 个
+🧮 数学期望：${ev.toFixed(2)}
 --------------------------------
-${ev > 0 && data.factors.length >= 3 ? "🏆 结论：这是一个伟大的机会。" : "⚠️ 结论：建议放弃或继续观察。"}
+${isGreat ? "🏆 结论：这是一个伟大的机会。" : "⚠️ 结论：存在硬伤，不建议行动。"}
 `.trim();
                 navigator.clipboard.writeText(report);
                 setCopied(true);
@@ -164,12 +175,14 @@ ${ev > 0 && data.factors.length >= 3 ? "🏆 结论：这是一个伟大的机�
                                         <label className="flex items-center gap-2 text-sm font-bold mb-2">
                                             <Icons.Ghost size={16}/> 事前验尸 (Pre-Mortem)
                                         </label>
+                                        <p className="text-xs text-red-400 mb-2 font-bold">⚠️ 必填：为了防止盲目乐观，系统要求至少输入 10 个字以上的深度分析。</p>
                                         <textarea 
                                             className="w-full h-24 p-4 bg-red-50 rounded-xl border border-red-100 focus:ring-2 focus:ring-red-200 outline-none resize-none text-sm"
                                             placeholder="想象3年后失败了。请写下导致失败的3个具体死因..."
                                             value={data.preMortem}
                                             onChange={e => updateData('preMortem', e.target.value)}
                                         ></textarea>
+                                        <div className="text-right text-xs text-slate-400 mt-1">{data.preMortem.length}/10 字</div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold mb-2">魔鬼代言人 (Devil's Advocate)</label>
@@ -237,7 +250,6 @@ ${ev > 0 && data.factors.length >= 3 ? "🏆 结论：这是一个伟大的机�
                                         onChange={e => updateData('winRate', parseInt(e.target.value))}
                                         className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                     />
-                                    <p className="text-xs text-slate-400 mt-2">提示：如果你没有“能力圈”，胜率通常不应超过 50%。</p>
                                 </div>
 
                                 <div className="flex items-center gap-4">
@@ -269,21 +281,33 @@ ${ev > 0 && data.factors.length >= 3 ? "🏆 结论：这是一个伟大的机�
                             </div>
                         </div>
                     );
-                    case 5: 
-                        const isGreat = data.factors.length >= 3 && ev > 0 && data.preMortem.length > 10;
-                        return (
+                    case 5: return (
                         <div className="slide-in space-y-6">
                             <div className={`p-8 rounded-2xl text-center border-2 ${isGreat ? 'bg-white border-yellow-400 shadow-xl' : 'bg-slate-100 border-slate-200'}`}>
                                 <div className="mb-4 inline-block p-4 rounded-full bg-white shadow-sm">
                                     {isGreat ? <span className="text-4xl">🏆</span> : <span className="text-4xl">🤔</span>}
                                 </div>
-                                <h2 className="text-3xl font-black serif mb-2 text-slate-900">
+                                <h2 className="text-3xl font-black serif mb-4 text-slate-900">
                                     {isGreat ? "全力出击" : "谨慎观望"}
                                 </h2>
-                                <p className="text-slate-600 mb-6 max-w-sm mx-auto">
+
+                                {/* 透明的检查清单：展示为什么通过/不通过 */}
+                                <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left space-y-3">
+                                    {criteria.map(c => (
+                                        <div key={c.id} className="flex items-center justify-between text-sm">
+                                            <div className="flex items-center gap-2">
+                                                {c.met ? <Icons.Check size={16} className="text-green-500"/> : <Icons.X size={16} className="text-red-500"/>}
+                                                <span className={c.met ? "text-slate-700 font-bold" : "text-slate-400"}>{c.name}</span>
+                                            </div>
+                                            {!c.met && <span className="text-xs text-red-500 font-bold">{c.msg}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <p className="text-slate-600 mb-6 max-w-sm mx-auto text-sm">
                                     {isGreat 
-                                        ? "各方模型共振，数学期望为正，且已做好最坏打算。这是属于你的 Lollapalooza 时刻。" 
-                                        : "缺乏足够的模型支撑，或数学期望不佳。芒格建议：‘如果你不确定，那就什么都别做。’"}
+                                        ? "各方模型共振，数学期望为正，且已做好深度死因推演。" 
+                                        : "未满足所有核心条件。芒格建议：‘如果你不确定，那就什么都别做。’"}
                                 </p>
                                 
                                 <button 
@@ -297,7 +321,7 @@ ${ev > 0 && data.factors.length >= 3 ? "🏆 结论：这是一个伟大的机�
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-xs text-slate-500 font-mono leading-relaxed">
                                 <p className="mb-2 font-bold text-slate-700 uppercase">/// 决策快照 ///</p>
                                 <p>项目: {data.project || "未定义"}</p>
-                                <p>死因推演: {data.preMortem ? "已完成" : "❌ 未完成"}</p>
+                                <p>死因推演: {data.preMortem.length > 10 ? "✅ 深度达标" : "⚠️ 字数太少"}</p>
                                 <p>模型评分: {data.factors.length}/6</p>
                                 <p>EV: {ev.toFixed(2)}</p>
                             </div>
@@ -314,7 +338,7 @@ ${ev > 0 && data.factors.length >= 3 ? "🏆 结论：这是一个伟大的机�
                         {/* 顶部导航 */}
                         <div className="flex justify-between items-center mb-8 px-2">
                             <h1 className="text-xl font-black tracking-tight flex items-center gap-2 serif text-slate-800">
-                                <Icons.Brain className="text-slate-900"/> MUNGER OS <span className="text-xs bg-slate-200 px-1.5 py-0.5 rounded text-slate-500 font-sans">v3.0</span>
+                                <Icons.Brain className="text-slate-900"/> MUNGER OS <span className="text-xs bg-slate-200 px-1.5 py-0.5 rounded text-slate-500 font-sans">v3.1</span>
                             </h1>
                             <button onClick={reset} className="text-slate-300 hover:text-red-500 transition-colors"><Icons.Trash size={18}/></button>
                         </div>
